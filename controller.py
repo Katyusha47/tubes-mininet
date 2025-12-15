@@ -112,7 +112,14 @@ class OpenFlowController(app_manager.RyuApp):
         src = eth.src
         dpid = datapath.id
 
+        # Ignore broadcast/multicast for now to reduce flooding
+        if dst[:5] == 'ff:ff' or dst[:5] == '33:33' or dst[:2] == '01':
+            return
+
         self.mac_to_port.setdefault(dpid, {})
+
+        # Log packet info (reduce logging to avoid spam)
+        # self.logger.info(f"Packet in switch {dpid}: src={src} dst={dst} in_port={in_port}")
 
         # Learn MAC address to avoid flooding next time
         self.mac_to_port[dpid][src] = in_port
@@ -123,28 +130,35 @@ class OpenFlowController(app_manager.RyuApp):
         else:
             out_port = ofproto.OFPP_FLOOD
 
+        # Default actions
         actions = [parser.OFPActionOutput(out_port)]
 
         # Check for special handling
         ip_pkt = pkt.get_protocol(ipv4.ipv4)
         tcp_pkt = pkt.get_protocol(tcp.tcp)
+        icmp_pkt = pkt.get_protocol(icmp.icmp)
+        
+        # Check if this is ICMP from h1 (should already be dropped by flow rule)
+        if ip_pkt and icmp_pkt and ip_pkt.src == self.h1_ip:
+            self.logger.info(f"ICMP from h1 detected - should be dropped by flow rule")
+            return  # Don't forward
         
         # Handle TCP traffic from h2 to h3 (Route through s1 -> s3 -> s2)
         if ip_pkt and tcp_pkt:
             if ip_pkt.src == self.h2_ip and ip_pkt.dst == self.h3_ip:
                 self.logger.info(f"TCP packet from h2 to h3 on switch {dpid}")
                 # Install flow for specific routing
-                match = parser.OFPMatch(
-                    eth_type=ether_types.ETH_TYPE_IP,
-                    ip_proto=6,  # TCP
-                    ipv4_src=self.h2_ip,
-                    ipv4_dst=self.h3_ip
-                )
                 if out_port != ofproto.OFPP_FLOOD:
-                    self.add_flow(datapath, 50, match, actions, idle_timeout=30)
+                    match = parser.OFPMatch(
+                        eth_type=ether_types.ETH_TYPE_IP,
+                        ip_proto=6,  # TCP
+                        ipv4_src=self.h2_ip,
+                        ipv4_dst=self.h3_ip
+                    )
+                    self.add_flow(datapath, 50, match, actions, idle_timeout=60)
 
         # Handle packets from h4 - modify headers
-        if src == self.h4_mac:
+        if src == self.h4_mac and out_port != ofproto.OFPP_FLOOD:
             self.logger.info(f"Packet from h4 detected on switch {dpid} - modifying headers")
             # Modify source MAC to a different address
             new_mac = '00:00:00:00:00:44'  # Modified MAC
@@ -154,22 +168,25 @@ class OpenFlowController(app_manager.RyuApp):
             ]
             
             # Install flow with header modification
-            if out_port != ofproto.OFPP_FLOOD:
-                match = parser.OFPMatch(
-                    in_port=in_port,
-                    eth_src=self.h4_mac
-                )
-                self.add_flow(datapath, 60, match, actions, idle_timeout=30)
+            match = parser.OFPMatch(
+                in_port=in_port,
+                eth_src=self.h4_mac,
+                eth_dst=dst
+            )
+            self.add_flow(datapath, 60, match, actions, idle_timeout=60)
 
         # Install a flow to avoid packet_in next time (for regular traffic)
-        if out_port != ofproto.OFPP_FLOOD and src != self.h4_mac:
-            match = parser.OFPMatch(in_port=in_port, eth_dst=dst, eth_src=src)
-            # Verify if we have a valid buffer_id, if yes, send buffer_id
-            if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                self.add_flow(datapath, 10, match, actions, msg.buffer_id, idle_timeout=30)
-                return
-            else:
-                self.add_flow(datapath, 10, match, actions, idle_timeout=30)
+        # Only install flow if we know the destination port
+        if out_port != ofproto.OFPP_FLOOD:
+            match = parser.OFPMatch(in_port=in_port, eth_dst=dst)
+            
+            # For h4, don't install regular flow (already handled above)
+            if src != self.h4_mac:
+                if msg.buffer_id != ofproto.OFP_NO_BUFFER:
+                    self.add_flow(datapath, 10, match, actions, msg.buffer_id, idle_timeout=60)
+                    return
+                else:
+                    self.add_flow(datapath, 10, match, actions, idle_timeout=60)
 
         # Send packet out
         data = None

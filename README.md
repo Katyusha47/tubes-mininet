@@ -277,6 +277,33 @@ wsl --set-version Ubuntu 2
 systemd=true
 ```
 
+### Problem: "pingall" shows high packet loss (83% dropped)
+**Solution**:
+```bash
+# 1. Make sure controller is running FIRST before starting Mininet
+# Terminal 1 - Start controller first:
+ryu-manager controller.py --verbose
+
+# 2. Wait for "loading app" message, then start Mininet
+# Terminal 2:
+sudo python3 topology.py
+
+# 3. In Mininet, wait 2-3 seconds before testing
+mininet> pingall
+
+# 4. If still failing, restart both:
+# Stop Mininet (Ctrl+D or 'exit')
+# Stop controller (Ctrl+C)
+# Clean Mininet: sudo mn -c
+# Start controller first, then topology again
+```
+
+### Problem: Controller shows infinite "EventOFPPacketIn" messages
+**Solution**: This was a bug in the original controller - the updated controller.py fixes this by:
+- Properly filtering broadcast/multicast packets
+- Installing flow rules correctly to avoid repeated packet-in
+- Increasing idle_timeout from 30 to 60 seconds
+
 ## 📝 Catatan Untuk Laporan
 
 ### Bab III - Implementasi

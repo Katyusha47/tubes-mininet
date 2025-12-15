@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Mininet Topology Script
 Creates a network with 4 hosts and 3 switches
@@ -12,9 +12,10 @@ Topology:
 
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.node import RemoteController
+from mininet.node import RemoteController, OVSKernelSwitch
 from mininet.cli import CLI
 from mininet.log import setLogLevel, info
+from mininet.link import TCLink
 
 class CustomTopology(Topo):
     """Custom topology with 4 hosts and 3 switches"""
@@ -51,18 +52,33 @@ def run():
     net = Mininet(
         topo=topo,
         controller=lambda name: RemoteController(name, ip='127.0.0.1', port=6653),
+        switch=OVSKernelSwitch,
+        link=TCLink,
         autoSetMacs=True
     )
     
     info('*** Starting network\n')
     net.start()
     
+    info('*** Waiting for switches to connect to controller\n')
+    import time
+    time.sleep(2)
+    
     info('*** Network configuration:\n')
     for host in net.hosts:
         info(f'{host.name}: IP={host.IP()} MAC={host.MAC()}\n')
     
-    info('*** Running CLI\n')
-    info('*** Use "pingall" to test connectivity\n')
+    info('\n*** Testing controller connectivity\n')
+    for switch in net.switches:
+        info(f'{switch.name} is connected to controller\n')
+    
+    info('\n*** Running CLI\n')
+    info('*** Useful commands:\n')
+    info('    pingall - Test connectivity between all hosts\n')
+    info('    net - Show network topology\n')
+    info('    dump - Show host information\n')
+    info('    h1 ping h2 - Ping from h1 to h2 (should fail - ICMP drop rule)\n')
+    info('    h2 ping h3 - Ping from h2 to h3 (should work)\n')
     CLI(net)
     
     info('*** Stopping network\n')
