@@ -81,7 +81,15 @@ pip3 install ryu
 
 ## 🚀 Cara Menjalankan
 
-### Step 1: Start Ryu Controller
+### ⚠️ IMPORTANT: Start in correct order!
+
+### Step 0: Clean Previous Sessions (CRITICAL)
+```bash
+# Linux/WSL - Always run this first!
+sudo mn -c
+```
+
+### Step 1: Start Ryu Controller FIRST
 Buka terminal pertama:
 ```bash
 # Linux/WSL
@@ -99,21 +107,24 @@ loading app controller.py
 instantiating app controller.py of OpenFlowController
 ```
 
-### Step 2: Start Mininet Topology
+**⚠️ WAIT for "instantiating app" message before proceeding!**
+
+### Step 2: Start Mininet Topology (After controller is ready)
 Buka terminal kedua:
 ```bash
 # Linux/WSL
-sudo python topology.py
+sudo python3 topology.py
 ```
 
 Atau di Windows PowerShell:
 ```powershell
-wsl sudo python topology.py
+wsl sudo python3 topology.py
 ```
 
 Output yang diharapkan:
 ```
 *** Starting network
+*** Waiting for switches to connect to controller
 *** Network configuration:
 h1: IP=10.0.0.1 MAC=00:00:00:00:00:01
 h2: IP=10.0.0.2 MAC=00:00:00:00:00:02
@@ -122,6 +133,14 @@ h4: IP=10.0.0.4 MAC=00:00:00:00:00:04
 *** Running CLI
 mininet>
 ```
+
+### Step 3: Wait Before Testing (IMPORTANT!)
+**⚠️ Wait 3-5 seconds** after Mininet CLI appears before running tests!
+
+This allows:
+- Switches to connect to controller
+- Flow rules to be installed
+- ARP to resolve MAC addresses
 
 ## 🧪 Testing
 
@@ -277,25 +296,40 @@ wsl --set-version Ubuntu 2
 systemd=true
 ```
 
-### Problem: "pingall" shows high packet loss (83% dropped)
-**Solution**:
+### Problem: "pingall" shows 100% or high packet loss
+**This is the MOST COMMON issue!**
+
+**Solution - Complete Restart**:
 ```bash
-# 1. Make sure controller is running FIRST before starting Mininet
-# Terminal 1 - Start controller first:
+# Step 1: Stop Mininet (in Mininet terminal)
+mininet> exit
+
+# Step 2: Clean everything
+sudo mn -c
+
+# Step 3: Stop controller (Ctrl+C in controller terminal)
+
+# Step 4: Check if OpenVSwitch is running
+sudo service openvswitch-switch status
+# If not running: sudo service openvswitch-switch start
+
+# Step 5: Start controller FIRST
 ryu-manager controller.py --verbose
 
-# 2. Wait for "loading app" message, then start Mininet
-# Terminal 2:
+# Step 6: WAIT for "instantiating app" message (2-3 seconds)
+
+# Step 7: Start Mininet
 sudo python3 topology.py
 
-# 3. In Mininet, wait 2-3 seconds before testing
+# Step 8: In Mininet, WAIT 5 seconds before testing
 mininet> pingall
+```
 
-# 4. If still failing, restart both:
-# Stop Mininet (Ctrl+D or 'exit')
-# Stop controller (Ctrl+C)
-# Clean Mininet: sudo mn -c
-# Start controller first, then topology again
+**Quick fix script**:
+```bash
+chmod +x fix.sh
+./fix.sh
+# Then follow the on-screen instructions
 ```
 
 ### Problem: Controller shows infinite "EventOFPPacketIn" messages
