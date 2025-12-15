@@ -1,0 +1,107 @@
+Tugas Proyek: Simulasi OpenFlow
+dengan Mininet
+Tujuan
+Mahasiswa mampu:
+1. Membuat topology jaringan sederhana menggunakan Mininet (misalnya 3
+switch dan 4 host).
+2. Mengimplementasikan aturan match + action di OpenFlow Controller
+(misalnya POX, Ryu, atau ONOS).
+3. Memahami bagaimana packet forwarding dapat diprogram sesuai kebutuhan
+jaringan.
+
+Tugas
+1. Membangun Topologi Jaringan
+o
+
+o
+
+Gunakan Mininet untuk membuat topologi:
+
+
+4 host (h1, h2, h3, h4)
+
+
+
+3 switch (s1, s2, s3)
+
+
+
+1 controller (misalnya Ryu).
+
+Pastikan setiap host dapat saling berkomunikasi (ping all).
+
+2. Implementasi Aturan Match + Action
+o
+
+Buat program controller sederhana yang berisi aturan OpenFlow,
+misalnya:
+
+
+Drop paket ICMP dari host h1 (h1 tidak bisa ping ke host lain).
+
+
+
+Forward paket TCP dari h2 ke h3 melalui jalur tertentu (misalnya
+lewat s1 → s3).
+
+
+
+Modify header paket: ubah MAC/IP pada paket yang lewat h4.
+
+3. Pengujian
+o
+
+Lakukan pengujian dengan:
+
+
+
+Ping antar host untuk melihat aturan drop.
+
+
+
+Iperf untuk uji transfer TCP.
+
+
+
+Periksa apakah header paket berubah dengan tcpdump atau
+wireshark.
+
+Hasil yang Dikumpulkan
+1. Laporan Proyek (PDF/DOC) berisi:
+o
+
+Bab I – Pendahuluan: Latar belakang, tujuan, manfaat.
+
+o
+
+Bab II – Landasan Teori: Mininet, OpenFlow, Match + Action,
+Controller (Ryu/POX/ONOS).
+
+o
+
+Bab III – Perancangan dan Implementasi: Desain topologi, kode
+program, aturan match+action.
+
+o
+
+Bab IV – Pengujian dan Analisis: Hasil percobaan (screenshot ping,
+iperf, tcpdump).
+
+o
+
+Bab V – Kesimpulan dan Saran.
+
+2. Demo Video (5–10 menit):
+o
+
+Menunjukkan topologi di Mininet.
+
+o
+
+Menjalankan controller.
+
+o
+
+Menampilkan hasil simulasi aturan yang sudah diterapkan.
+
+

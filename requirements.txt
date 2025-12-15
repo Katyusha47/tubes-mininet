@@ -1,0 +1,26 @@
+# Python Requirements for OpenFlow Mininet Simulation
+# Install with: pip install -r requirements.txt
+
+# Ryu SDN Framework (OpenFlow Controller)
+ryu>=4.34
+
+# Mininet (Note: Mininet requires Linux and is typically installed via apt)
+# On Ubuntu/Debian: sudo apt-get install mininet
+# The following are Python dependencies that work with Mininet
+
+# Network utilities
+eventlet>=0.30.2
+routes>=2.5.1
+WebOb>=1.8.7
+tinyrpc>=1.1.7
+
+# Optional but useful for development
+netaddr>=0.8.0
+oslo.config>=8.7.1
+iperf 
+tcpdump 
+net-tools
+
+# Testing and monitoring tools
+# Note: iperf and tcpdump should be installed via system package manager
+# Ubuntu/Debian: sudo apt-get install iperf tcpdump wireshark
